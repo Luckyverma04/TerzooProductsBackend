@@ -18,7 +18,17 @@ const app = express();
 // -----------------------------
 // 🧩 Middlewares
 // -----------------------------
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://trazoo-products.onrender.com", 
+    ],
+    methods: "GET,POST,PUT,DELETE",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // -----------------------------
@@ -28,11 +38,10 @@ app.get("/", (req, res) => {
   res.send("Backend running...");
 });
 
-createDefaultAdmin(); 
+createDefaultAdmin();
 
 // -----------------------------
-// 📌 Enquiry API route
-// /api/enquiry → POST request
+// 📌 Routes
 // -----------------------------
 app.use("/api/auth", authRoute);
 app.use("/api/enquiry", enquiryRoute);
@@ -43,8 +52,5 @@ app.use("/api/enquiry", enquiryRoute);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log("===============================================");
-  console.log(`✔ Server running on:  http://localhost:${PORT}`);
-  console.log(`✔ Environment:        ${process.env.NODE_ENV || "development"}`);
-  console.log("===============================================\n");
+  console.log(`✔ Server running on: http://localhost:${PORT}`);
 });
