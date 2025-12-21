@@ -7,47 +7,58 @@ import enquiryRoute from "./src/routes/enquiry.route.js";
 import productRoutes from "./src/routes/product.route.js";
 import { createDefaultAdmin } from "./src/controllers/user.controller.js";
 
-// Load env only in local
+// 🔹 Load ENV (Render ignores .env file, but safe for local)
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
 
-// Connect DB
+// 🔹 Connect MongoDB
 connectDB();
 
 const app = express();
 
-// Secure CORS
+// 🔹 Allowed Origins
 const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
   "https://trazooglobal.com",
   "https://www.trazooglobal.com",
 ];
 
+// 🔹 CORS FIX (IMPORTANT)
 app.use(
   cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
+// 🔹 JSON Middleware
 app.use(express.json());
 
-// Health route
+// 🔹 Health Check
 app.get("/", (req, res) => {
   res.send("Backend running...");
 });
 
-// Create admin
+// 🔹 Create default admin (safe)
 createDefaultAdmin();
 
-// Routes
+// 🔹 Routes
 app.use("/api/auth", authRoute);
 app.use("/api/enquiry", enquiryRoute);
 app.use("/api/products", productRoutes);
 
-// Start server
+// 🔹 Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✔ Backend live on port ${PORT}`);
+  console.log(`✅ Backend live on port ${PORT}`);
 });
