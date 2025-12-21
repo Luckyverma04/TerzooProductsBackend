@@ -33,17 +33,17 @@ export const createEnquiry = async (req, res) => {
     const enquiry = new Enquiry(req.body);
     await enquiry.save();
 
-    // 🔥 Email error will NOT break API
-    try {
-      await sendUserEmail(enquiry.email, enquiry.fullName);
-    } catch (mailError) {
-      console.error("EMAIL ERROR:", mailError.message);
-    }
-
+    // ✅ RESPONSE IMMEDIATELY
     res.status(201).json({
       success: true,
       message: "Enquiry submitted successfully",
     });
+
+    // 🔥 EMAIL BACKGROUND ME (no await)
+    sendUserEmail(enquiry.email, enquiry.fullName)
+      .then(() => console.log("Email sent"))
+      .catch((err) => console.error("Email failed:", err.message));
+
   } catch (error) {
     console.error("ENQUIRY ERROR:", error);
     res.status(500).json({
