@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-
+import Enquiry from "../models/enquiry.model.js";
 // -----------------------------------------
 // 📌 Send OTP Email using Nodemailer
 // -----------------------------------------
@@ -20,8 +20,11 @@ const sendOTPEmail = async (email, otp) => {
     to: email,
     subject: "Your Email Verification OTP",
     html: `
-      <h2>Your OTP is: <b>${otp}</b></h2>
-      <p>OTP expires in 15 minutes.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Your OTP is: <b>${otp}</b></h2>
+        <p>OTP expires in 15 minutes.</p>
+        <p style="color: #666; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+      </div>
     `,
   });
 };
@@ -43,7 +46,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role: "customer", // 👈 Auto-assign
+      role: "customer",
     });
 
     // Generate OTP
@@ -160,3 +163,85 @@ export const createDefaultAdmin = async () => {
     console.log("Admin creation error:", error.message);
   }
 };
+
+// -----------------------------------------
+// 👥 GET ALL USERS (Admin) - FIXED
+// -----------------------------------------
+export const getAllUsers = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    // Build search filter
+    const filter = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { role: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    // Get users with pagination
+    const users = await User.find(filter)
+      .select("-password -otp -otpExpires")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const totalUsers = await User.countDocuments(filter);
+
+    // Return users array directly (frontend expects array)
+    res.json(users);
+
+  } catch (error) {
+    console.error("Get all users error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// -----------------------------------------
+// 👤 GET USER BY ID (Admin)
+// -----------------------------------------
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id)
+      .select("-password -otp -otpExpires");
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getDashboardSummary = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+
+    const totalLeads = await Enquiry.countDocuments();
+    const pendingLeads = await Enquiry.countDocuments({ status: "pending" });
+    const completedLeads = await Enquiry.countDocuments({ status: "completed" });
+    const activeLeads = await Enquiry.countDocuments({ status: "active" });
+
+    res.status(200).json({
+      totalUsers,
+      totalLeads,
+      totalEnquiries: totalLeads,
+      pendingLeads,
+      completedLeads,
+      activeLeads,
+    });
+  } catch (error) {
+    console.error("Dashboard summary error:", error);
+    res.status(500).json({ message: "Dashboard summary error" });
+  }
+};
+

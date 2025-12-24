@@ -43,3 +43,51 @@ export const createEnquiry = async (req, res) => {
     });
   }
 };
+export const getAllEnquiries = async (req, res) => {
+  try {
+    const enquiries = await Enquiry.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: enquiries.length,
+      enquiries,
+    });
+  } catch (error) {
+    console.error("Get all enquiries error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+/* ================= GET ENQUIRY BY ID ================= */
+// @route GET /api/enquiry/:id
+// @access Admin
+export const getEnquiryById = async (req, res) => {
+  try {
+    const enquiry = await Enquiry.findById(req.params.id);
+
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      enquiry,
+    });
+  } catch (error) {
+    console.error("Get enquiry by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+// ================= ADMIN DASHBOARD SUMMARY =================
+// @route   GET /api/enquiry/dashboard/summary
+// @access  Admin
+
