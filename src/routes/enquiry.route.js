@@ -13,6 +13,7 @@ uploadLeadsCSV,
   dashboardSummary,
   addCommunication,
   getCommunications,
+   assignBulkLeads,
 } from "../controllers/enquiry.controller.js";
 
 const router = express.Router();
@@ -32,5 +33,6 @@ router.get("/:id/communication", protect, getCommunications);
 // ================= ASSOCIATE =================
 router.put("/:id/status", updateLeadStatus);
 router.put("/:id/assign", assignLeadToAssociate);
+router.post("/assign/bulk", protect, assignBulkLeads);
 router.get("/my/leads",protect,getMyLeads);
 export default router;

@@ -306,3 +306,52 @@ export const getCommunications = async (req, res) => {
   }
 };
 
+// ================= ADMIN BULK ASSIGN LEADS =================
+export const assignBulkLeads = async (req, res) => {
+  try {
+    const { leadIds, associateId } = req.body;
+
+    if (!leadIds || leadIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No leads selected",
+      });
+    }
+
+    if (!associateId) {
+      return res.status(400).json({
+        success: false,
+        message: "Associate is required",
+      });
+    }
+
+    const result = await Enquiry.updateMany(
+      { _id: { $in: leadIds } },
+      {
+        $set: {
+          assignedTo: associateId,
+          status: "ACTIVE",
+        },
+        $push: {
+          history: {
+            action: "BULK_LEAD_ASSIGNED",
+            comment: `Bulk assigned ${leadIds.length} leads`,
+            by: req.user?._id || null,
+          },
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Leads assigned successfully",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
