@@ -5,10 +5,12 @@ import {
   loginUser,
   getAllUsers,
   getUserById,
-  getDashboardSummary
+  getDashboardSummary,
+  getMe
 } from "../controllers/user.controller.js";
 import { isAdmin } from "../middleware/admin.middleware.js";
 import { protect } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
 
 // -----------------------------------------
@@ -22,7 +24,7 @@ router.post("/register", registerUser);
 // Endpoint: POST /api/auth/verify-otp
 // -----------------------------------------
 router.post("/verify-otp", verifyEmail);
-
+router.get("/me", protect, getMe);
 // -----------------------------------------
 // 🔑 Login User
 // Endpoint: POST /api/auth/login

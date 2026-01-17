@@ -244,4 +244,27 @@ export const getDashboardSummary = async (req, res) => {
     res.status(500).json({ message: "Dashboard summary error" });
   }
 };
+// -----------------------------------------
+// 👤 GET LOGGED IN USER (ME)
+// -----------------------------------------
+export const getMe = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone || "",
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
