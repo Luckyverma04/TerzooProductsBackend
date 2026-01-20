@@ -7,7 +7,6 @@ import connectDB from "./src/config/db.js";
 import authRoute from "./src/routes/user.route.js";
 import enquiryRoute from "./src/routes/enquiry.route.js";
 import giftKitRoutes from "./src/routes/giftKit.route.js";
-
 import { createDefaultAdmin } from "./src/controllers/user.controller.js";
 
 /* ======================
@@ -55,10 +54,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ======================
-   HEALTH CHECK
+   HEALTH CHECK (IMPORTANT)
 ====================== */
 app.get("/", (req, res) => {
-  res.status(200).send("🚀 Trazoo backend running");
+  res.status(200).json({
+    status: "OK",
+    message: "🚀 Trazoo backend running",
+    uptime: process.uptime(),
+    time: new Date().toISOString(),
+  });
 });
 
 /* ======================
@@ -83,18 +87,21 @@ app.listen(PORT, () => {
 });
 
 /* ===================================================
-   🔥 KEEP BACKEND ALIVE
+   🔥 KEEP BACKEND ALIVE (RENDER SAFE)
 =================================================== */
 
-const BACKEND_URL = process.env.BACKEND_URL;
+const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL;
 
-if (BACKEND_URL) {
-  setInterval(async () => {
-    try {
-      await axios.get(BACKEND_URL);
-      console.log("🔁 Keep-alive ping sent");
-    } catch (error) {
-      console.error("❌ Keep-alive failed:", error.message);
-    }
-  }, 10 * 60 * 1000);
+if (KEEP_ALIVE_URL) {
+  // thoda delay taaki server fully start ho jaye
+  setTimeout(() => {
+    setInterval(async () => {
+      try {
+        await axios.get(KEEP_ALIVE_URL, { timeout: 5000 });
+        console.log("🔁 Keep-alive ping success");
+      } catch (error) {
+        console.error("❌ Keep-alive failed:", error.message);
+      }
+    }, 5 * 60 * 1000); // every 5 minutes
+  }, 10000); // start after 10 sec
 }
