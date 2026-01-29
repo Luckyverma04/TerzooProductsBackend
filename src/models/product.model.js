@@ -24,7 +24,7 @@ const productSchema = new mongoose.Schema(
     // Category (used in kit builder)
     category: {
       type: String,
-      enum: ["Diary", "Pen", "Bottle", "Keychain", "Box"],
+      enum: ["Diary", "Stationery", "Drinkware", "Packaging", "Electronics", "Bags"],
       required: true,
     },
 

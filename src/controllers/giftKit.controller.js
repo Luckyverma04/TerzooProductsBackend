@@ -4,10 +4,22 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 
 /* =======================
+   CONSTANTS
+======================= */
+const ALLOWED_CATEGORIES = [
+  "Diary",
+  "Stationery",
+  "Drinkware",
+  "Packaging",
+  "Electronics",
+    "Bags", 
+];
+
+/* =======================
    PRODUCT APIs (ADMIN)
 ======================= */
 
-// Create Product
+// ✅ Create Product
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -22,6 +34,23 @@ export const createProduct = async (req, res) => {
       budgetTags,
     } = req.body;
 
+    if (!ALLOWED_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        message: `Invalid category. Allowed: ${ALLOWED_CATEGORIES.join(", ")}`,
+      });
+    }
+
+    const existing = await Product.findOne({
+      name: name.trim(),
+      category,
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Product already exists in this category",
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: "Product image required" });
     }
@@ -33,7 +62,7 @@ export const createProduct = async (req, res) => {
     fs.unlinkSync(req.file.path);
 
     const product = await Product.create({
-      name,
+      name: name.trim(),
       description,
       category,
       unitPrice,
@@ -41,8 +70,9 @@ export const createProduct = async (req, res) => {
       minOrderQty,
       customBrandingMOQ,
       brandingSupported,
-      budgetTags: JSON.parse(budgetTags),
+      budgetTags: JSON.parse(budgetTags).map(Number), // ✅ IMPORTANT FIX
       images: [result.secure_url],
+      isActive: true,
     });
 
     res.status(201).json({
@@ -54,10 +84,11 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// Get All Products
+// ✅ Get All Products (Admin - Shows both active and inactive)
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find({ isActive: true }).sort({
+    // ✅ FIXED: Removed isActive filter so admin can see ALL products
+    const products = await Product.find({}).sort({
       createdAt: -1,
     });
     res.json(products);
@@ -70,14 +101,14 @@ export const getAllProducts = async (req, res) => {
    USER TOOL APIs
 ======================= */
 
-// Get Products by Budget
+// ✅ Get Products by Budget
 export const getProductsByBudget = async (req, res) => {
   try {
     const budget = Number(req.params.budget);
 
     const products = await Product.find({
       isActive: true,
-      budgetTags: budget,
+      budgetTags: { $in: [budget] }, // ✅ FIX
     });
 
     res.json(products);
@@ -86,15 +117,19 @@ export const getProductsByBudget = async (req, res) => {
   }
 };
 
-// Get Products by Category + Budget
+// ✅ Get Products by Category + Budget
 export const getProductsByCategoryAndBudget = async (req, res) => {
   try {
     const { budget, category } = req.query;
 
+    if (!ALLOWED_CATEGORIES.includes(category)) {
+      return res.status(400).json({ message: "Invalid category" });
+    }
+
     const products = await Product.find({
       isActive: true,
       category,
-      budgetTags: Number(budget),
+      budgetTags: { $in: [Number(budget)] }, // ✅ FIX
     });
 
     res.json(products);
@@ -103,7 +138,7 @@ export const getProductsByCategoryAndBudget = async (req, res) => {
   }
 };
 
-// Upload Brand Logo
+// ✅ Upload Brand Logo
 export const uploadBrandLogo = async (req, res) => {
   try {
     if (!req.file) {
@@ -125,7 +160,35 @@ export const uploadBrandLogo = async (req, res) => {
   }
 };
 
-// Submit Final Kit Enquiry
+// ✅ Update Product
+export const updateProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Toggle Product Status (Active/Inactive)
+export const toggleProductStatus = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    product.isActive = !product.isActive;
+    await product.save();
+
+    res.json({ success: true, isActive: product.isActive });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Submit Final Kit Enquiry
 export const createKitEnquiry = async (req, res) => {
   try {
     const {
@@ -167,9 +230,10 @@ export const createKitEnquiry = async (req, res) => {
   }
 };
 
-// =======================
-// AUTO KIT SUGGESTIONS
-// =======================
+/* =======================
+   AUTO KIT SUGGESTIONS
+======================= */
+
 export const getKitSuggestions = async (req, res) => {
   try {
     const budget = Number(req.query.budget);
@@ -180,30 +244,30 @@ export const getKitSuggestions = async (req, res) => {
 
     const diaries = await Product.find({
       category: "Diary",
-      budgetTags: budget,
+      budgetTags: { $in: [budget] },
       isActive: true,
     }).limit(5);
 
-    const pens = await Product.find({
-      category: "Pen",
-      budgetTags: budget,
+    const stationery = await Product.find({
+      category: "Stationery",
+      budgetTags: { $in: [budget] },
+      isActive: true,
+    }).limit(6);
+
+    const drinkware = await Product.find({
+      category: "Drinkware",
+      budgetTags: { $in: [budget] },
       isActive: true,
     }).limit(4);
 
-    const bottles = await Product.find({
-      category: "Bottle",
-      budgetTags: budget,
+    const bags = await Product.find({
+      category: "Bags",                 // ✅ NEW CATEGORY
+      budgetTags: { $in: [budget] },
       isActive: true,
     }).limit(4);
-
-    const keychains = await Product.find({
-      category: "Keychain",
-      budgetTags: budget,
-      isActive: true,
-    }).limit(3);
 
     const box = await Product.findOne({
-      category: "Box",
+      category: "Packaging",
       isActive: true,
     });
 
@@ -213,9 +277,9 @@ export const getKitSuggestions = async (req, res) => {
       box,
       categories: {
         diaries,
-        pens,
-        bottles,
-        keychains,
+        stationery,
+        drinkware,
+        bags,          // ✅ RETURNED TO FRONTEND
       },
     });
   } catch (error) {
@@ -223,9 +287,11 @@ export const getKitSuggestions = async (req, res) => {
   }
 };
 
-// =======================
-// PRICE PREVIEW API
-// =======================
+
+/* =======================
+   PRICE PREVIEW API
+======================= */
+
 export const calculateKitPrice = async (req, res) => {
   try {
     const { quantity, selectedProducts } = req.body;
@@ -248,7 +314,6 @@ export const calculateKitPrice = async (req, res) => {
           .json({ message: "Selected product not found" });
       }
 
-      // MOQ for custom branding (Keychain logic)
       if (
         item.brandingType === "logo" &&
         product.customBrandingMOQ &&

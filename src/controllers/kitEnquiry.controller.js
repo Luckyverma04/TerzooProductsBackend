@@ -115,6 +115,20 @@ export const createKitEnquiry = async (req, res) => {
 /* ================================
    ADMIN: GET ALL KIT ENQUIRIES
 ================================ */
+export const getKitEnquiryById = async (req, res) => {
+  try {
+    const enquiry = await KitEnquiry.findById(req.params.id)
+      .populate("selectedProducts.productId");
+
+    if (!enquiry) {
+      return res.status(404).json({ message: "Enquiry not found" });
+    }
+
+    res.json(enquiry);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const getAllKitEnquiries = async (req, res) => {
   try {
