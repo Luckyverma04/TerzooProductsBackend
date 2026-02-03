@@ -225,25 +225,42 @@ export const getUserById = async (req, res) => {
 export const getDashboardSummary = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-
     const totalLeads = await Enquiry.countDocuments();
-    const pendingLeads = await Enquiry.countDocuments({ status: "pending" });
-    const completedLeads = await Enquiry.countDocuments({ status: "completed" });
-    const activeLeads = await Enquiry.countDocuments({ status: "active" });
+
+    // 🟡 Pending = Not assigned to any associate yet
+    const pendingLeads = await Enquiry.countDocuments({
+      assignedTo: null,
+      finalStatus: "IN_PROCESS",
+    });
+
+    // 🟢 Active = Assigned to associate & still in process
+    const activeLeads = await Enquiry.countDocuments({
+      assignedTo: { $ne: null },
+      finalStatus: "IN_PROCESS",
+    });
+
+    const convertedLeads = await Enquiry.countDocuments({
+      finalStatus: "CONVERTED",
+    });
+
+    const notInterestedLeads = await Enquiry.countDocuments({
+      finalStatus: "NOT_INTERESTED",
+    });
 
     res.status(200).json({
       totalUsers,
       totalLeads,
-      totalEnquiries: totalLeads,
       pendingLeads,
-      completedLeads,
       activeLeads,
+      convertedLeads,
+      notInterestedLeads,
     });
   } catch (error) {
     console.error("Dashboard summary error:", error);
     res.status(500).json({ message: "Dashboard summary error" });
   }
 };
+
 // -----------------------------------------
 // 👤 GET LOGGED IN USER (ME)
 // -----------------------------------------

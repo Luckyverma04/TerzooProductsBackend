@@ -43,13 +43,47 @@ const kitEnquirySchema = new mongoose.Schema(
       default: true,
     },
 
+    // ============================================================
+    // Every value every button in the entire app actually sends:
+    //
+    //   KitEnquiries page (lowercase):    "contacted","completed","cancelled"
+    //   AdminLeadDetails (UPPERCASE):     "ACTIVE","CONFIRMED","COMPLETED","CANCELLED"
+    //   Original legacy defaults:         "new","quoted","won","lost"
+    // ============================================================
     status: {
       type: String,
-      enum: ["new", "contacted", "quoted", "won", "lost"],
+      enum: [
+        // legacy
+        "new",
+        "contacted",
+        "quoted",
+        "won",
+        "lost",
+        // KitEnquiries page buttons (lowercase) ← these two were missing
+        "pending",
+        "completed",
+        "cancelled",
+        // AdminLeadDetails quick-action buttons (UPPERCASE)
+        "PENDING",
+        "ACTIVE",
+        "CONFIRMED",
+        "COMPLETED",
+        "CANCELLED",
+      ],
       default: "new",
     },
+
+    // history — pushed on every status change so activity log works
+    history: [
+      {
+        action: { type: String },
+        comment: { type: String },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
 
-export default mongoose.model("KitEnquiry", kitEnquirySchema);
+// prevents OverwriteModelError if imported more than once
+export default mongoose.models.KitEnquiry || mongoose.model("KitEnquiry", kitEnquirySchema);

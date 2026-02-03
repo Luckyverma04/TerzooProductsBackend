@@ -2,6 +2,7 @@ import Enquiry from "../models/enquiry.model.js";
 import nodemailer from "nodemailer";
 import csv from "csv-parser";
 import fs from "fs";
+
 // ================= EMAIL =================
 const sendUserEmail = async (email, name) => {
   const transporter = nodemailer.createTransport({
@@ -63,20 +64,59 @@ export const createManualLead = async (req, res) => {
   }
 };
 
-// ================= GET ALL LEADS =================
+// ================= GET ALL ENQUIRIES (PAGINATED) - 🔥 FIXED VERSION =================
 export const getAllEnquiries = async (req, res) => {
   try {
-    const enquiries = await Enquiry.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, enquiries });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || "";
+    const assigned = req.query.assigned || "";
+
+    const skip = (page - 1) * limit;
+    const query = {};
+
+    // 🔍 Search by name, email, phone, company
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { company: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // 🔥 THIS IS THE MAIN FIX - Filter by assigned status
+    if (assigned === "yes") query.assignedTo = { $ne: null };
+    if (assigned === "no") query.assignedTo = null;
+
+    const enquiries = await Enquiry.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("assignedTo", "name email")
+      .select("-communications -history")
+      .lean();
+
+    const total = await Enquiry.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      enquiries,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // ================= GET BY ID =================
 export const getEnquiryById = async (req, res) => {
   try {
-    const enquiry = await Enquiry.findById(req.params.id);
+    const enquiry = await Enquiry.findById(req.params.id).populate("assignedTo", "name email role");
     if (!enquiry) {
       return res.status(404).json({ success: false, message: "Not found" });
     }
@@ -117,6 +157,7 @@ export const updateLeadStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // ================= ADMIN ASSIGN LEAD =================
 export const assignLeadToAssociate = async (req, res) => {
   try {
@@ -136,7 +177,7 @@ export const assignLeadToAssociate = async (req, res) => {
     lead.history.push({
       action: "LEAD_ASSIGNED",
       comment: "Lead assigned to associate",
-      by: req.user?.id || null, // admin id
+      by: req.user?.id || null,
     });
 
     await lead.save();
@@ -153,29 +194,38 @@ export const assignLeadToAssociate = async (req, res) => {
     });
   }
 };
-// ================= ASSOCIATE MY LEADS =================
 
 // ================= GET MY LEADS (TOKEN BASED) =================
 export const getMyLeads = async (req, res) => {
   try {
-    // 🔥 req.user comes from token
-    const leads = await Enquiry.find({
-      assignedTo: req.user._id,
-    }).sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const leads = await Enquiry.find({ assignedTo: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select("-communications -history")
+      .lean();
+
+    const total = await Enquiry.countDocuments({ assignedTo: req.user._id });
 
     res.status(200).json({
       success: true,
-      count: leads.length,
       leads,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+// ================= UPLOAD CSV =================
 export const uploadLeadsCSV = async (req, res) => {
   try {
     if (!req.file) {
@@ -190,12 +240,6 @@ export const uploadLeadsCSV = async (req, res) => {
     fs.createReadStream(req.file.path)
       .pipe(csv())
       .on("data", (row) => {
-        /*
-          Your CSV columns:
-          company, name, mobile, email, address, pincode,
-          city, website, category, State
-        */
-
         const lead = {
           fullName: row.name?.trim() || "",
           phone: row.mobile?.trim() || "",
@@ -207,7 +251,6 @@ export const uploadLeadsCSV = async (req, res) => {
           status: "ACTIVE",
         };
 
-        // ✅ Minimum condition: name OR phone hona chahiye
         if (lead.fullName || lead.phone) {
           leads.push(lead);
         }
@@ -222,8 +265,6 @@ export const uploadLeadsCSV = async (req, res) => {
         }
 
         await Enquiry.insertMany(leads, { ordered: false });
-
-        // 🧹 delete temp file
         fs.unlinkSync(req.file.path);
 
         res.status(201).json({
@@ -243,19 +284,35 @@ export const uploadLeadsCSV = async (req, res) => {
 // ================= DASHBOARD SUMMARY =================
 export const dashboardSummary = async (req, res) => {
   try {
-    const summary = {
-      total: await Enquiry.countDocuments(),
-      pending: await Enquiry.countDocuments({ status: "PENDING" }),
-      active: await Enquiry.countDocuments({ status: "ACTIVE" }),
-      converted: await Enquiry.countDocuments({ finalStatus: "CONVERTED" }),
-      notInterested: await Enquiry.countDocuments({
-        finalStatus: "NOT_INTERESTED",
-      }),
-    };
+    const total = await Enquiry.countDocuments();
+
+    const pending = await Enquiry.countDocuments({
+      assignedTo: null,
+      finalStatus: "IN_PROCESS",
+    });
+
+    const active = await Enquiry.countDocuments({
+      assignedTo: { $ne: null },
+      finalStatus: "IN_PROCESS",
+    });
+
+    const converted = await Enquiry.countDocuments({
+      finalStatus: "CONVERTED",
+    });
+
+    const notInterested = await Enquiry.countDocuments({
+      finalStatus: "NOT_INTERESTED",
+    });
 
     res.status(200).json({
       success: true,
-      summary,
+      summary: {
+        total,
+        pending,
+        active,
+        converted,
+        notInterested,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -354,4 +411,3 @@ export const assignBulkLeads = async (req, res) => {
     });
   }
 };
-
