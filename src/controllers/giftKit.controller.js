@@ -238,54 +238,73 @@ export const getKitSuggestions = async (req, res) => {
   try {
     const budget = Number(req.query.budget);
 
-    if (!budget) {
-      return res.status(400).json({ message: "Budget is required" });
+    if (!budget || budget <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid budget is required",
+      });
     }
 
-    const diaries = await Product.find({
-      category: "Diary",
-      budgetTags: { $in: [budget] },
+    // 1️⃣ Fetch ONLY products under budget (user requirement)
+    const products = await Product.find({
       isActive: true,
-    }).limit(5);
+      category: { $ne: "Packaging" },
+      unitPrice: { $lte: budget },
+    }).sort({ unitPrice: 1 });
 
-    const stationery = await Product.find({
-      category: "Stationery",
-      budgetTags: { $in: [budget] },
-      isActive: true,
-    }).limit(6);
-
-    const drinkware = await Product.find({
-      category: "Drinkware",
-      budgetTags: { $in: [budget] },
-      isActive: true,
-    }).limit(4);
-
-    const bags = await Product.find({
-      category: "Bags",                 // ✅ NEW CATEGORY
-      budgetTags: { $in: [budget] },
-      isActive: true,
-    }).limit(4);
-
+    // 2️⃣ Fetch packaging box (auto included)
     const box = await Product.findOne({
       category: "Packaging",
       isActive: true,
     });
 
-    res.json({
+    // 3️⃣ Correct category grouping (IMPORTANT FIX)
+    const categories = {
+      diaries: [],
+      stationery: [],
+      drinkware: [],
+      bags: [],
+      electronics: [],
+    };
+
+    products.forEach((product) => {
+      switch (product.category) {
+        case "Diary":
+          categories.diaries.push(product);
+          break;
+        case "Stationery":
+          categories.stationery.push(product);
+          break;
+        case "Drinkware":
+          categories.drinkware.push(product);
+          break;
+        case "Bags":
+          categories.bags.push(product);
+          break;
+        case "Electronics":
+          categories.electronics.push(product);
+          break;
+        default:
+          break;
+      }
+    });
+
+    res.status(200).json({
       success: true,
       budget,
       box,
-      categories: {
-        diaries,
-        stationery,
-        drinkware,
-        bags,          // ✅ RETURNED TO FRONTEND
-      },
+      categories,
+      note: "Products shown are within selected budget",
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Kit Suggestion Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load kit suggestions",
+    });
   }
 };
+
 
 
 /* =======================
