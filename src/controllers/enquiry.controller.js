@@ -22,6 +22,106 @@ const sendUserEmail = async (email, name) => {
     html: `<p>Hello ${name}, we received your enquiry.</p>`,
   });
 };
+// ================= ADMIN ENQUIRY EMAIL =================
+const sendAdminEnquiryEmail = async (enquiry) => {
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const adminUrl = `https://trazooglobal.com/admin/lead/${enquiry._id}`;
+
+  await transporter.sendMail({
+    from: `"TRAZOO Global" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    subject: `🚨 New Enquiry - ${enquiry.fullName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: auto;">
+
+        <h2 style="color:#DF4607;">
+          🚨 New Trazoo Enquiry
+        </h2>
+
+        <p>
+          A new requirement has been submitted from the website.
+        </p>
+
+        <hr />
+
+        <h3>Customer Details</h3>
+
+        <p>
+          <strong>Name:</strong> ${enquiry.fullName}
+        </p>
+
+        <p>
+          <strong>Company:</strong> ${enquiry.company || "Not provided"}
+        </p>
+
+        <p>
+          <strong>Email:</strong> ${enquiry.email || "Not provided"}
+        </p>
+
+        <p>
+          <strong>Phone:</strong> ${enquiry.phone || "Not provided"}
+        </p>
+
+        <p>
+          <strong>Location:</strong> ${enquiry.location || "Not provided"}
+        </p>
+
+        <h3>Requirement</h3>
+
+        <p>
+          ${enquiry.requirement || enquiry.lookingFor || "Not provided"}
+        </p>
+
+        <p>
+          <strong>Quantity:</strong>
+          ${enquiry.quantity || "Not provided"}
+        </p>
+
+        <p>
+          <strong>Required By:</strong>
+          ${
+            enquiry.requiredBy
+              ? new Date(enquiry.requiredBy).toLocaleDateString("en-IN")
+              : "Not provided"
+          }
+        </p>
+
+        <br />
+
+        <a
+          href="${adminUrl}"
+          style="
+            display:inline-block;
+            background:#DF4607;
+            color:#ffffff;
+            text-decoration:none;
+            padding:14px 24px;
+            border-radius:6px;
+            font-weight:bold;
+          "
+        >
+          View Enquiry
+        </a>
+
+        <br /><br />
+
+        <p style="color:#777;font-size:13px;">
+          Enquiry ID: ${enquiry._id}
+        </p>
+
+      </div>
+    `,
+  });
+};
 
 // ================= WEBSITE ENQUIRY =================
 export const createEnquiry = async (req, res) => {
@@ -32,18 +132,37 @@ export const createEnquiry = async (req, res) => {
       status: "PENDING",
     });
 
+    // Response immediately
     res.status(201).json({
       success: true,
       message: "Enquiry submitted successfully",
+      enquiryId: enquiry._id,
     });
 
-    sendUserEmail(enquiry.email, enquiry.fullName)
-      .catch(err => console.error("Email failed:", err.message));
+    // Customer confirmation email
+    if (enquiry.email) {
+      sendUserEmail(enquiry.email, enquiry.fullName)
+        .catch((err) =>
+          console.error("Customer email failed:", err.message)
+        );
+    }
+
+    // Admin notification email
+    sendAdminEnquiryEmail(enquiry)
+      .catch((err) =>
+        console.error("Admin enquiry email failed:", err.message)
+      );
 
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Create enquiry error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
+
 
 // ================= ADMIN MANUAL LEAD =================
 export const createManualLead = async (req, res) => {

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 /* ================= COMMUNICATION LOG ================= */
+
 const communicationSchema = new mongoose.Schema(
   {
     type: {
@@ -8,14 +9,17 @@ const communicationSchema = new mongoose.Schema(
       enum: ["WHATSAPP", "EMAIL", "CALL"],
       required: true,
     },
+
     message: {
       type: String,
       default: "",
     },
+
     sentBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
     sentAt: {
       type: Date,
       default: Date.now,
@@ -25,14 +29,24 @@ const communicationSchema = new mongoose.Schema(
 );
 
 /* ================= HISTORY LOG ================= */
+
 const historySchema = new mongoose.Schema(
   {
-    action: String,
-    comment: String,
+    action: {
+      type: String,
+      default: "",
+    },
+
+    comment: {
+      type: String,
+      default: "",
+    },
+
     by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
     timestamp: {
       type: Date,
       default: Date.now,
@@ -42,9 +56,13 @@ const historySchema = new mongoose.Schema(
 );
 
 /* ================= ENQUIRY SCHEMA ================= */
+
 const enquirySchema = new mongoose.Schema(
   {
-    // ================= BASIC LEAD INFO =================
+    // ==================================================
+    // BASIC LEAD INFORMATION
+    // ==================================================
+
     fullName: {
       type: String,
       required: true,
@@ -54,103 +72,171 @@ const enquirySchema = new mongoose.Schema(
     email: {
       type: String,
       lowercase: true,
+      trim: true,
       default: "",
     },
 
     phone: {
       type: String,
       required: true,
+      trim: true,
     },
 
     company: {
       type: String,
+      trim: true,
       default: "",
     },
 
     location: {
       type: String,
+      trim: true,
       default: "",
     },
+
+    // ==================================================
+    // REQUIREMENT DETAILS
+    // ==================================================
 
     lookingFor: {
       type: String,
+      trim: true,
       default: "",
     },
+
     requirement: {
-  type: String,
-  default: "",
-  trim: true,
-},
+      type: String,
+      trim: true,
+      default: "",
+    },
 
-quantity: {
-  type: Number,
-  default: null,
-},
+    quantity: {
+      type: Number,
+      default: null,
+    },
 
-requiredBy: {
-  type: Date,
-  default: null,
-},
+    requiredBy: {
+      type: Date,
+      default: null,
+    },
 
-    // ================= SOURCE IDENTIFIER =================
+    // ==================================================
+    // STEP 2 REQUIREMENT DETAILS
+    // ==================================================
+
+    overallBudget: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    deliveryRequirement: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // ==================================================
+    // SOURCE IDENTIFIER
+    // ==================================================
+
     leadSource: {
       type: String,
       enum: ["WEBSITE", "SELF", "DIGITAL"],
       default: "WEBSITE",
     },
 
-    // ================= LEAD FLOW STATUS =================
+    // ==================================================
+    // LEAD FLOW STATUS
+    // ==================================================
+
     status: {
       type: String,
-      enum: ["PENDING", "ACTIVE", "CONFIRMED", "COMPLETED", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "ACTIVE",
+        "CONFIRMED",
+        "COMPLETED",
+        "CANCELLED",
+      ],
       default: "PENDING",
     },
 
     finalStatus: {
       type: String,
-      enum: ["IN_PROCESS", "NOT_INTERESTED", "CONVERTED"],
+      enum: [
+        "IN_PROCESS",
+        "NOT_INTERESTED",
+        "CONVERTED",
+      ],
       default: "IN_PROCESS",
     },
 
-    // ================= CALL TRACKING =================
+    // ==================================================
+    // CALL TRACKING
+    // ==================================================
+
     callStatus: {
       type: String,
-      enum: ["CONNECTED", "DNP", "WRONG_NUMBER", "CALL_BACK"],
+      enum: [
+        "CONNECTED",
+        "DNP",
+        "WRONG_NUMBER",
+        "CALL_BACK",
+      ],
       default: "DNP",
     },
 
     subStatus: {
       type: String,
-      enum: ["PROSPECT", "NON_PROSPECT"],
+      enum: [
+        "PROSPECT",
+        "NON_PROSPECT",
+      ],
       default: "PROSPECT",
     },
 
-    // ================= ASSIGNMENT =================
+    // ==================================================
+    // ASSIGNMENT
+    // ==================================================
+
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // associate
+      ref: "User",
       default: null,
     },
 
-    // ================= COMMUNICATION =================
+    // ==================================================
+    // COMMUNICATION
+    // ==================================================
+
     communications: {
       type: [communicationSchema],
       default: [],
     },
 
-    // ================= ACTIVITY HISTORY =================
+    // ==================================================
+    // ACTIVITY HISTORY
+    // ==================================================
+
     history: {
       type: [historySchema],
       default: [],
     },
 
-    // ================= DUPLICATE FLAG (OPTIONAL BUT USEFUL) =================
+    // ==================================================
+    // DUPLICATE FLAG
+    // ==================================================
+
     isDuplicate: {
       type: Boolean,
       default: false,
     },
   },
-  { timestamps: true }
+
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("Enquiry", enquirySchema);
