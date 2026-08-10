@@ -76,6 +76,21 @@ const enquirySchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    requirement: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+quantity: {
+  type: Number,
+  default: null,
+},
+
+requiredBy: {
+  type: Date,
+  default: null,
+},
 
     // ================= SOURCE IDENTIFIER =================
     leadSource: {
