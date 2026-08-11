@@ -6,7 +6,8 @@ import {
   getAllUsers,
   getUserById,
   getDashboardSummary,
-  getMe
+  getMe,
+  resendOTP
 } from "../controllers/user.controller.js";
 import { isAdmin } from "../middleware/admin.middleware.js";
 import { protect } from "../middleware/auth.middleware.js";
@@ -23,6 +24,7 @@ router.post("/register", registerUser);
 // 🔐 Verify OTP
 // Endpoint: POST /api/auth/verify-otp
 // -----------------------------------------
+router.post("/resend-otp", resendOTP);
 router.post("/verify-otp", verifyEmail);
 router.get("/me", protect, getMe);
 // -----------------------------------------

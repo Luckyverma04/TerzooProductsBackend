@@ -2,6 +2,7 @@ import express from "express";
 import {
   createProduct,
   getAllProducts,
+  getActiveProducts,        // ✅ NEW - for product page
   updateProduct,
   toggleProductStatus,
   getKitSuggestions,
@@ -10,7 +11,7 @@ import {
 
 import {
   createKitEnquiry,
-   createCustomizationEnquiry, 
+  createCustomizationEnquiry, 
   getAllKitEnquiries,
   getKitEnquiryById,
   updateKitEnquiryStatus,
@@ -24,7 +25,8 @@ const router = express.Router();
 
 /* ========= PRODUCTS ========= */
 router.post("/products", protect, isAdmin, uploadProductImage, createProduct);
-router.get("/products", getAllProducts);
+router.get("/products", getAllProducts);                    // ✅ Admin sees all (active + inactive)
+router.get("/products/active", getActiveProducts);          // ✅ NEW - Frontend product page
 router.put("/products/:id", protect, isAdmin, updateProduct);
 router.patch("/products/:id/toggle", protect, isAdmin, toggleProductStatus);
 

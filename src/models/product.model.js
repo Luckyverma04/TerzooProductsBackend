@@ -21,10 +21,22 @@ const productSchema = new mongoose.Schema(
       },
     ],
 
-    // Category (used in kit builder)
+    // Category - UPDATED TO MATCH FRONTEND
     category: {
       type: String,
-      enum: ["Diary", "Stationery", "Drinkware", "Packaging", "Electronics", "Bags"],
+      enum: [
+        "Apparel",
+        "Drinkware",
+        "Stationery",
+        "Bags",
+        "Electronics & Tech",
+        "Travel",
+        "Wellness",
+        "Food & Hampers",
+        "Awards & Recognition",
+        "Event Merchandise",
+        "Packaging",
+      ],
       required: true,
     },
 
@@ -60,6 +72,20 @@ const productSchema = new mongoose.Schema(
     budgetTags: [
       {
         type: Number, // 300, 500, 800, 1000
+      },
+    ],
+
+    // ✅ NEW: Optional fields for product page display
+    spec: {
+      type: String, // e.g. "220 GSM, Bio-washed"
+      required: false,
+      default: null,
+    },
+
+    useCases: [
+      {
+        type: String, // e.g. ["Employee Joining", "Event"]
+        required: false,
       },
     ],
 

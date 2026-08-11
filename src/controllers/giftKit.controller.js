@@ -4,15 +4,20 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 
 /* =======================
-   CONSTANTS
+   CONSTANTS - UPDATED TO MATCH FRONTEND
 ======================= */
 const ALLOWED_CATEGORIES = [
-  "Diary",
-  "Stationery",
+  "Apparel",
   "Drinkware",
+  "Stationery",
+  "Bags",
+  "Electronics & Tech",
+  "Travel",
+  "Wellness",
+  "Food & Hampers",
+  "Awards & Recognition",
+  "Event Merchandise",
   "Packaging",
-  "Electronics",
-    "Bags", 
 ];
 
 /* =======================
@@ -32,6 +37,8 @@ export const createProduct = async (req, res) => {
       customBrandingMOQ,
       brandingSupported,
       budgetTags,
+      spec,           // ✅ NEW - OPTIONAL
+      useCases,       // ✅ NEW - OPTIONAL
     } = req.body;
 
     if (!ALLOWED_CATEGORIES.includes(category)) {
@@ -70,8 +77,10 @@ export const createProduct = async (req, res) => {
       minOrderQty,
       customBrandingMOQ,
       brandingSupported,
-      budgetTags: JSON.parse(budgetTags).map(Number), // ✅ IMPORTANT FIX
+      budgetTags: budgetTags ? JSON.parse(budgetTags).map(Number) : [],
       images: [result.secure_url],
+      spec: spec || null,                    // ✅ OPTIONAL
+      useCases: useCases ? JSON.parse(useCases) : [],  // ✅ OPTIONAL
       isActive: true,
     });
 
@@ -97,6 +106,18 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
+// ✅ Get Active Products Only (Frontend - for product page)
+export const getActiveProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ isActive: true }).sort({
+      createdAt: -1,
+    });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 /* =======================
    USER TOOL APIs
 ======================= */
@@ -108,7 +129,7 @@ export const getProductsByBudget = async (req, res) => {
 
     const products = await Product.find({
       isActive: true,
-      budgetTags: { $in: [budget] }, // ✅ FIX
+      budgetTags: { $in: [budget] },
     });
 
     res.json(products);
@@ -129,7 +150,7 @@ export const getProductsByCategoryAndBudget = async (req, res) => {
     const products = await Product.find({
       isActive: true,
       category,
-      budgetTags: { $in: [Number(budget)] }, // ✅ FIX
+      budgetTags: { $in: [Number(budget)] },
     });
 
     res.json(products);
@@ -258,19 +279,24 @@ export const getKitSuggestions = async (req, res) => {
       isActive: true,
     });
 
-    // 3️⃣ Correct category grouping (IMPORTANT FIX)
+    // 3️⃣ Correct category grouping
     const categories = {
-      diaries: [],
+      apparel: [],
       stationery: [],
       drinkware: [],
       bags: [],
       electronics: [],
+      travel: [],
+      wellness: [],
+      food: [],
+      awards: [],
+      merchandise: [],
     };
 
     products.forEach((product) => {
       switch (product.category) {
-        case "Diary":
-          categories.diaries.push(product);
+        case "Apparel":
+          categories.apparel.push(product);
           break;
         case "Stationery":
           categories.stationery.push(product);
@@ -281,8 +307,23 @@ export const getKitSuggestions = async (req, res) => {
         case "Bags":
           categories.bags.push(product);
           break;
-        case "Electronics":
+        case "Electronics & Tech":
           categories.electronics.push(product);
+          break;
+        case "Travel":
+          categories.travel.push(product);
+          break;
+        case "Wellness":
+          categories.wellness.push(product);
+          break;
+        case "Food & Hampers":
+          categories.food.push(product);
+          break;
+        case "Awards & Recognition":
+          categories.awards.push(product);
+          break;
+        case "Event Merchandise":
+          categories.merchandise.push(product);
           break;
         default:
           break;
@@ -304,8 +345,6 @@ export const getKitSuggestions = async (req, res) => {
     });
   }
 };
-
-
 
 /* =======================
    PRICE PREVIEW API
