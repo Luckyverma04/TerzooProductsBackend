@@ -182,16 +182,93 @@ export const uploadBrandLogo = async (req, res) => {
 };
 
 // ✅ Update Product
+// ✅ Update Product - COMPLETE VERSION WITH IMAGE HANDLING
 export const updateProduct = async (req, res) => {
   try {
+    const {
+      name,
+      description,
+      category,
+      unitPrice,
+      brandingPrice,
+      minOrderQty,
+      customBrandingMOQ,
+      brandingSupported,
+      budgetTags,
+      spec,
+      useCases,
+    } = req.body;
+
+    // Validate category
+    if (category && !ALLOWED_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        message: `Invalid category. Allowed: ${ALLOWED_CATEGORIES.join(", ")}`,
+      });
+    }
+
+    // Build update object
+    const updateData = {};
+
+    if (name) updateData.name = name.trim();
+    if (description) updateData.description = description;
+    if (category) updateData.category = category;
+    if (unitPrice) updateData.unitPrice = unitPrice;
+    if (brandingPrice !== undefined) updateData.brandingPrice = brandingPrice;
+    if (minOrderQty) updateData.minOrderQty = minOrderQty;
+    if (customBrandingMOQ !== undefined) updateData.customBrandingMOQ = customBrandingMOQ;
+    if (brandingSupported !== undefined) updateData.brandingSupported = brandingSupported;
+    if (spec !== undefined) updateData.spec = spec;
+    if (useCases) updateData.useCases = JSON.parse(useCases);
+
+    // ✅ Parse budgetTags properly
+    if (budgetTags) {
+      try {
+        updateData.budgetTags = JSON.parse(budgetTags).map(Number);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid budgetTags format" });
+      }
+    }
+
+    // ✅ Handle image upload if new file provided
+    if (req.file) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "products",
+        });
+        updateData.images = [result.secure_url];
+        // Delete temp file
+        fs.unlinkSync(req.file.path);
+      } catch (uploadError) {
+        // Clean up temp file on error
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({ message: "Image upload failed: " + uploadError.message });
+      }
+    }
+
+    // ✅ Update product in database
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true }
+      updateData,
+      { new: true, runValidators: true }
     );
 
-    res.json(product);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Product updated successfully!",
+      product,
+    });
   } catch (error) {
+    // Clean up temp file if exists
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error("Update product error:", error);
     res.status(500).json({ message: error.message });
   }
 };

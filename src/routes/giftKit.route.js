@@ -27,7 +27,7 @@ const router = express.Router();
 router.post("/products", protect, isAdmin, uploadProductImage, createProduct);
 router.get("/products", getAllProducts);                    // ✅ Admin sees all (active + inactive)
 router.get("/products/active", getActiveProducts);          // ✅ NEW - Frontend product page
-router.put("/products/:id", protect, isAdmin, updateProduct);
+router.put("/products/:id", protect, isAdmin, uploadProductImage, updateProduct);
 router.patch("/products/:id/toggle", protect, isAdmin, toggleProductStatus);
 
 /* ========= KIT TOOL ========= */
