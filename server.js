@@ -9,9 +9,6 @@ import enquiryRoute from "./src/routes/enquiry.route.js";
 import giftKitRoutes from "./src/routes/giftKit.route.js";
 import { createDefaultAdmin } from "./src/controllers/user.controller.js";
 
-/* ======================
-   ENV CONFIG
-====================== */
 dotenv.config();
 
 /* ======================
@@ -57,7 +54,7 @@ app.use(express.urlencoded({
 }));
 
 /* ======================
-   HEALTH CHECK (IMPORTANT)
+   HEALTH CHECK
 ====================== */
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -67,11 +64,6 @@ app.get("/", (req, res) => {
     time: new Date().toISOString(),
   });
 });
-
-/* ======================
-   INITIAL SETUP
-====================== */
-createDefaultAdmin();
 
 /* ======================
    ROUTES
@@ -85,8 +77,13 @@ app.use("/api", giftKitRoutes);
 ====================== */
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`✅ Backend live on port ${PORT}`);
+  
+  // DELAY DE: DB properly connect ho jaye, phir admin check karna
+  setTimeout(async () => {
+    await createDefaultAdmin();
+  }, 2000); // 2 second ka delay
 });
 
 /* ===================================================
@@ -96,7 +93,6 @@ app.listen(PORT, () => {
 const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL;
 
 if (KEEP_ALIVE_URL) {
-  // thoda delay taaki server fully start ho jaye
   setTimeout(() => {
     setInterval(async () => {
       try {
@@ -105,6 +101,6 @@ if (KEEP_ALIVE_URL) {
       } catch (error) {
         console.error("❌ Keep-alive failed:", error.message);
       }
-    }, 5 * 60 * 1000); // every 5 minutes
-  }, 10000); // start after 10 sec
+    }, 5 * 60 * 1000);
+  }, 10000);
 }
