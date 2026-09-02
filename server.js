@@ -8,7 +8,7 @@ import authRoute from "./src/routes/user.route.js";
 import enquiryRoute from "./src/routes/enquiry.route.js";
 import giftKitRoutes from "./src/routes/giftKit.route.js";
 import { createDefaultAdmin } from "./src/controllers/user.controller.js";
-
+import proposalRequestRoute from "./src/routes/proposalRequest.route.js";
 dotenv.config();
 
 /* ======================
@@ -71,6 +71,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoute);
 app.use("/api/enquiry", enquiryRoute);
 app.use("/api", giftKitRoutes);
+app.use("/api/proposal-requests", proposalRequestRoute);
 
 /* ======================
    SERVER START
