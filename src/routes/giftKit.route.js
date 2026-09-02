@@ -7,6 +7,7 @@ import {
   toggleProductStatus,
   getKitSuggestions,
   calculateKitPrice,
+  uploadBrandLogo,
 } from "../controllers/giftKit.controller.js";
 
 import {
@@ -33,6 +34,7 @@ router.patch("/products/:id/toggle", protect, isAdmin, toggleProductStatus);
 /* ========= KIT TOOL ========= */
 router.get("/kit/suggestions", getKitSuggestions);
 router.post("/kit/calculate-price", calculateKitPrice);
+router.post("/upload/logo", uploadProductImage, uploadBrandLogo);
 
 /* ========= ENQUIRY ========= */
 router.post("/kit-enquiry", createKitEnquiry);
