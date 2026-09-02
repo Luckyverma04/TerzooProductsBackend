@@ -23,26 +23,8 @@ export const createProposalRequest = async (req, res) => {
       brief,
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Requirement received",
-      requestId: request._id,
-    });
-
-    // Customer confirmation email
-    sendEmail({
-      to: email,
-      subject: "We've received your requirement — Trazoo",
-      html: `
-        <h2 style="color:#DF4607;font-family:sans-serif">Thank you, ${name}!</h2>
-        <p style="font-family:sans-serif">We've received your requirement and will be in touch within 1 working day.</p>
-        <br/>
-        <p style="font-family:sans-serif;color:#888">Team Trazoo Global</p>
-      `,
-    }).catch((err) => console.error("Customer email failed:", err.message));
-
-    // Admin notification email
-    sendEmail({
+    // ── Admin Notification Email ──
+    await sendEmail({
       to: process.env.EMAIL_USER,
       subject: `🚀 New Proposal Request — ${name}`,
       html: `
@@ -59,7 +41,25 @@ export const createProposalRequest = async (req, res) => {
         </table>
         <p style="font-family:sans-serif;margin-top:20px;color:#888">Request ID: ${request._id}</p>
       `,
-    }).catch((err) => console.error("Admin email failed:", err.message));
+    });
+
+    // ── Customer Confirmation Email ──
+    await sendEmail({
+      to: email,
+      subject: "We've received your requirement — Trazoo",
+      html: `
+        <h2 style="color:#DF4607;font-family:sans-serif">Thank you, ${name}!</h2>
+        <p style="font-family:sans-serif">We've received your requirement and will be in touch within 1 working day.</p>
+        <br/>
+        <p style="font-family:sans-serif;color:#888">Team Trazoo Global</p>
+      `,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Requirement received",
+      requestId: request._id,
+    });
   } catch (error) {
     console.error("Create proposal request error:", error);
     res.status(500).json({ message: "Something went wrong" });
